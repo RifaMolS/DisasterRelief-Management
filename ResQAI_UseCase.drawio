@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" version="21.5.0" type="device">
+  <diagram id="usecase-resqai" name="Use Case Diagram">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- System Boundary (Plain Rectangle) -->
+        <mxCell id="boundary" value="ResQAI System" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=table;startSize=20;container=0;collapsible=0;childLayout=0;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;fontSize=13;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="280" y="40" width="340" height="730" as="geometry" />
+        </mxCell>
+
+        <!-- Victim Actor (Stick Figure) -->
+        <mxCell id="actor_victim" value="Victim (User)" style="shape=umlActor;whiteSpace=wrap;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="110" y="80" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- NGO Actor (Stick Figure) -->
+        <mxCell id="actor_ngo" value="NGO" style="shape=umlActor;whiteSpace=wrap;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="115" y="280" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Admin Actor (Stick Figure) -->
+        <mxCell id="actor_admin" value="Admin" style="shape=umlActor;whiteSpace=wrap;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="115" y="490" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Volunteer Actor (Stick Figure) -->
+        <mxCell id="actor_volunteer" value="Volunteer" style="shape=umlActor;whiteSpace=wrap;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="115" y="650" width="30" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Use Cases (Ovals) -->
+        <mxCell id="uc1" value="Track Rescue History" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="70" width="190" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2" value="Request SOS Emergency" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="140" width="190" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="uc3" value="View AI Predictions &amp; Map" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="210" width="190" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="uc4" value="Deploy Assets" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="280" width="190" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="uc5" value="Review Strategic Signals" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="350" width="190" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="uc6" value="Register &amp; Login" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="420" width="190" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="uc7" value="Audit Verification Photos" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="490" width="190" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="uc8" value="Assign Field Tasks" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="560" width="190" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="uc9" value="Upload Completion Proof" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="630" width="190" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="uc10" value="Execute Field Operations" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="700" width="190" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Victim connections (no arrow, plain line) -->
+        <mxCell id="l1" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_victim" target="uc1" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l2" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_victim" target="uc2" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l3" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_victim" target="uc3" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l4" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_victim" target="uc6" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- NGO connections -->
+        <mxCell id="l5" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_ngo" target="uc3" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l6" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_ngo" target="uc4" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l7" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_ngo" target="uc5" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l8" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_ngo" target="uc6" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Admin connections -->
+        <mxCell id="l9" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_admin" target="uc6" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l10" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_admin" target="uc7" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l11" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_admin" target="uc8" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l12" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_admin" target="uc3" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Volunteer connections -->
+        <mxCell id="l13" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_volunteer" target="uc6" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l14" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_volunteer" target="uc9" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="l15" style="endArrow=none;html=1;strokeColor=#000000;" parent="1" source="actor_volunteer" target="uc10" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

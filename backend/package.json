@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "axios": "^1.16.0",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.4.1",
+    "nodemon": "^3.1.14"
+  },
+  "scripts": {
+    "start": "nodemon app.js",
+    "seed:sample": "node seed_sample_data.js"
+  }
+}
