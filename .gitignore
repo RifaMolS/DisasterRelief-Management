@@ -24,3 +24,16 @@ yarn-debug.log*
 yarn-error.log*
 .vscode/
 .idea/
+
+# Diagram & documentation files (do not push)
+*.drawio
+*.xml
+*.ipynb
+*.py
+*.csv
+*.md
+!frontend/README.md
+
+# Allow only the project documentation docx
+*.docx
+!AI-Resourcess.docx
