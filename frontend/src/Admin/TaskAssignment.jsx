@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from './AdminLayout';
 import { Row, Col, Card, CardBody, Form, FormGroup, Label, Input, Button, Table, Badge, Spinner, Modal, ModalHeader, ModalBody } from 'reactstrap';
-import { ClipboardList, Plus, Trash2, Clock } from 'lucide-react';
+import { ClipboardList, Plus, Trash2, Clock, Zap, MapPin } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
 const TaskAssignment = () => {
     const [volunteers, setVolunteers] = useState([]);
+    const [allVolunteers, setAllVolunteers] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [resources, setResources] = useState([]);
+    const [incidents, setIncidents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
@@ -18,7 +20,8 @@ const TaskAssignment = () => {
         volunteerId: '',
         priority: 'Medium',
         resourceId: '',
-        allocateQty: ''
+        allocateQty: '',
+        incidentId: ''
     });
     const [formErrors, setFormErrors] = useState({});
 
@@ -79,14 +82,55 @@ const TaskAssignment = () => {
         return false;
     };
 
-    const searchFilteredVolunteers = volunteers.filter(v => 
+    let formVolunteersList = volunteers;
+    if (formData.incidentId) {
+        const taskForSameIncident = tasks.find(t => 
+            t.incidentId && 
+            (t.incidentId._id || t.incidentId) === formData.incidentId &&
+            t.volunteerId
+        );
+        if (taskForSameIncident) {
+            const assignedVolId = taskForSameIncident.volunteerId._id || taskForSameIncident.volunteerId;
+            const assignedVol = allVolunteers.find(v => v._id === assignedVolId);
+            if (assignedVol) {
+                formVolunteersList = [assignedVol];
+            }
+        }
+    }
+
+    const searchFilteredVolunteers = formVolunteersList.filter(v => 
         !volunteerSearch ||
         v.name?.toLowerCase().includes(volunteerSearch.toLowerCase()) || 
         v.location?.toLowerCase().includes(volunteerSearch.toLowerCase())
     );
 
-    const nearbyVolunteers = searchFilteredVolunteers.filter(v => isNearby(v, selectedTask?.incidentId));
-    const regularVolunteers = searchFilteredVolunteers.filter(v => !isNearby(v, selectedTask?.incidentId));
+    let modalVolunteersList = volunteers;
+    if (selectedTask && selectedTask.incidentId) {
+        const incidentIdStr = selectedTask.incidentId._id || selectedTask.incidentId;
+        const taskForSameIncident = tasks.find(t => 
+            t._id !== selectedTask._id && 
+            t.incidentId && 
+            (t.incidentId._id || t.incidentId) === incidentIdStr &&
+            t.volunteerId
+        );
+        
+        if (taskForSameIncident) {
+            const assignedVolId = taskForSameIncident.volunteerId._id || taskForSameIncident.volunteerId;
+            const assignedVol = allVolunteers.find(v => v._id === assignedVolId);
+            if (assignedVol) {
+                modalVolunteersList = [assignedVol];
+            }
+        }
+    }
+
+    const searchFilteredModalVolunteers = modalVolunteersList.filter(v => 
+        !volunteerSearch ||
+        v.name?.toLowerCase().includes(volunteerSearch.toLowerCase()) || 
+        v.location?.toLowerCase().includes(volunteerSearch.toLowerCase())
+    );
+
+    const nearbyVolunteers = searchFilteredModalVolunteers.filter(v => isNearby(v, selectedTask?.incidentId));
+    const regularVolunteers = searchFilteredModalVolunteers.filter(v => !isNearby(v, selectedTask?.incidentId));
 
     const toggleModal = (task = null) => {
         setSelectedTask(task);
@@ -113,22 +157,27 @@ const TaskAssignment = () => {
 
     const fetchData = async () => {
         try {
-            const [vRes, tRes, rRes] = await Promise.all([
+            const [vRes, tRes, rRes, iRes] = await Promise.all([
                 axios.get('http://localhost:5000/auth/volunteers'),
                 axios.get('http://localhost:5000/task'),
-                axios.get('http://localhost:5000/resource')
+                axios.get('http://localhost:5000/resource'),
+                axios.get('http://localhost:5000/disaster')
             ]);
             
             const tasksData = tRes.data;
             const volunteersData = vRes.data;
             const resourcesData = rRes.data.filter(r => r.quantity > 0);
+            const incidentsData = iRes.data || [];
 
-            // Display all approved volunteers
-            const availableVolunteers = volunteersData.filter(u => u.isApproved);
+            // Display all approved volunteers (exclude those who are busy)
+            const allApproved = volunteersData.filter(u => u.isApproved);
+            setAllVolunteers(allApproved);
+            const availableVolunteers = allApproved.filter(u => u.status !== 'Busy');
 
             setVolunteers(availableVolunteers);
             setTasks(tasksData);
             setResources(resourcesData);
+            setIncidents(incidentsData);
         } catch (err) {
             toast.error("Failed to fetch data mesh.");
         } finally {
@@ -176,6 +225,10 @@ const TaskAssignment = () => {
             priority: formData.priority
         };
 
+        if (formData.incidentId) {
+            payload.incidentId = formData.incidentId;
+        }
+
         if (formData.resourceId && formData.allocateQty) {
             payload.allocatedResources = [{
                 originalId: formData.resourceId,
@@ -186,7 +239,7 @@ const TaskAssignment = () => {
         try {
             await axios.post('http://localhost:5000/task', payload);
             toast.success("Task assigned and synchronized.");
-            setFormData({ title: '', description: '', volunteerId: '', priority: 'Medium', resourceId: '', allocateQty: '' });
+            setFormData({ title: '', description: '', volunteerId: '', priority: 'Medium', resourceId: '', allocateQty: '', incidentId: '' });
             fetchData();
         } catch (err) {
             toast.error("Assignment failed.");
@@ -245,7 +298,7 @@ const TaskAssignment = () => {
                                             onClick={() => setShowFormDropdown(!showFormDropdown)}
                                         >
                                             {formData.volunteerId 
-                                                ? volunteers.find(v => v._id === formData.volunteerId)?.name || 'Unknown' 
+                                                ? allVolunteers.find(v => v._id === formData.volunteerId)?.name || 'Unknown' 
                                                 : 'Select Personnel...'}
                                             <span>▼</span>
                                         </div>
@@ -332,7 +385,47 @@ const TaskAssignment = () => {
                                         {formErrors.description && <div className="text-danger small mt-1">{formErrors.description}</div>}
                                     </FormGroup>
 
-                                    <div className="p-3 mb-4 rounded-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    {/* ── Link to Incident (NGO Connection) ── */}
+                                    <div className="p-3 mb-3 rounded-3" style={{ background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.15)' }}>
+                                        <h6 className="small fw-bold text-uppercase text-white opacity-75 mb-3 d-flex align-items-center gap-2">
+                                            <Zap size={14} className="text-info" /> Link to Incident (Optional)
+                                        </h6>
+                                        <FormGroup className="mb-0">
+                                            <Input 
+                                                type="select" 
+                                                value={formData.incidentId}
+                                                onChange={(e) => {
+                                                    const selected = incidents.find(i => i._id === e.target.value);
+                                                    setFormData({
+                                                        ...formData,
+                                                        incidentId: e.target.value,
+                                                        priority: selected ? (selected.severity === 'Critical' ? 'High' : selected.severity) : formData.priority
+                                                    });
+                                                }}
+                                                className="rounded-3 border-0 bg-secondary bg-opacity-25 text-white shadow-none p-2 px-3"
+                                                style={{ border: '1px solid rgba(14,165,233,0.2)' }}
+                                            >
+                                                <option value="" className="bg-dark">-- No incident linked --</option>
+                                                {incidents.map(i => (
+                                                    <option key={i._id} value={i._id} className="bg-dark">
+                                                        [{i.severity}] {i.type} — {i.address ? i.address.substring(0, 30) : 'GPS Verified'}
+                                                    </option>
+                                                ))}
+                                            </Input>
+                                            {formData.incidentId && (() => {
+                                                const inc = incidents.find(i => i._id === formData.incidentId);
+                                                return inc ? (
+                                                    <div className="mt-2 p-2 rounded-3 d-flex align-items-center gap-2" style={{ background: 'rgba(14,165,233,0.08)', fontSize: '0.72rem' }}>
+                                                        <MapPin size={12} className="text-info flex-shrink-0" />
+                                                        <span className="text-white-50">{inc.address || `${inc.location?.coordinates?.[1]?.toFixed(4)}, ${inc.location?.coordinates?.[0]?.toFixed(4)}`}</span>
+                                                        <Badge color={inc.severity === 'Critical' ? 'danger' : inc.severity === 'High' ? 'warning' : 'info'} pill style={{ fontSize: '0.6rem' }}>{inc.severity}</Badge>
+                                                    </div>
+                                                ) : null;
+                                            })()}
+                                        </FormGroup>
+                                    </div>
+
+                                    {/* <div className="p-3 mb-4 rounded-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
                                         <h6 className="small fw-bold text-uppercase text-white opacity-75 mb-3 d-flex align-items-center gap-2">
                                             <ClipboardList size={14} className="text-info" /> Allocate Supplies (Optional)
                                         </h6>
@@ -367,7 +460,7 @@ const TaskAssignment = () => {
                                                 {formErrors.allocateQty && <div className="text-danger small mt-1">{formErrors.allocateQty}</div>}
                                             </FormGroup>
                                         )}
-                                    </div>
+                                    </div> */}
                                     <Button color="success" block className="rounded-pill py-2 fw-bold border-0 shadow-lg" disabled={isSubmitting}>
                                         {isSubmitting ? <Spinner size="sm" /> : 'DISPATCH TASK'}
                                     </Button>
@@ -407,11 +500,11 @@ const TaskAssignment = () => {
                                                         >
                                                             <td className="px-4 py-4">
                                                                 <div className="d-flex align-items-center gap-3">
-                                                                    <div style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)', padding: '10px', borderRadius: '12px' }}>
-                                                                        <ClipboardList size={18} className="text-success" />
+                                                                    <div style={{ backgroundColor: task.incidentId ? 'rgba(14,165,233,0.15)' : 'rgba(34, 197, 94, 0.15)', padding: '10px', borderRadius: '12px' }}>
+                                                                        <ClipboardList size={18} className={task.incidentId ? 'text-info' : 'text-success'} />
                                                                     </div>
                                                                     <div>
-                                                                        <div className="d-flex align-items-center gap-2 fw-bold">
+                                                                        <div className="d-flex align-items-center gap-2 fw-bold flex-wrap">
                                                                             {task.title}
                                                                             {task.isNGOAlert && (
                                                                                 <span
@@ -432,6 +525,31 @@ const TaskAssignment = () => {
                                                                             )}
                                                                         </div>
                                                                         <div className="small text-muted">{task.description?.substring(0, 30)}...</div>
+                                                                        {/* ── Incident Link Badge ── */}
+                                                                        {task.incidentId && (
+                                                                            <div
+                                                                                className="d-flex align-items-center gap-2 mt-1 px-2 py-1 rounded-3"
+                                                                                style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)', width: 'fit-content' }}
+                                                                            >
+                                                                                <Zap size={10} className="text-info flex-shrink-0" />
+                                                                                <span style={{ fontSize: '0.65rem', color: '#38bdf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                                                                    {task.incidentId.type || 'Incident'}
+                                                                                </span>
+                                                                                <Badge
+                                                                                    color={task.incidentId.severity === 'Critical' ? 'danger' : task.incidentId.severity === 'High' ? 'warning' : 'info'}
+                                                                                    pill
+                                                                                    style={{ fontSize: '0.55rem', padding: '2px 6px' }}
+                                                                                >
+                                                                                    {task.incidentId.severity}
+                                                                                </Badge>
+                                                                                {task.incidentId.address && (
+                                                                                    <span style={{ fontSize: '0.6rem', color: '#64748b' }}>
+                                                                                        <MapPin size={9} style={{ marginRight: '2px' }} />
+                                                                                        {task.incidentId.address.substring(0, 22)}...
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -578,6 +696,29 @@ const TaskAssignment = () => {
                             <div className="small fw-bold text-uppercase opacity-50 mb-1">Target Mission</div>
                             <div className="fw-bold text-info">{selectedTask.title}</div>
                             <div className="small opacity-75">{selectedTask.description?.substring(0, 50)}...</div>
+                            {/* ── Linked Incident Context ── */}
+                            {selectedTask.incidentId && (
+                                <div className="mt-3 p-2 rounded-3" style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)' }}>
+                                    <div className="small fw-bold text-uppercase opacity-50 mb-1 d-flex align-items-center gap-1">
+                                        <Zap size={11} className="text-info" /> Linked Incident
+                                    </div>
+                                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                                        <span className="fw-bold text-info small">{selectedTask.incidentId.type}</span>
+                                        <Badge color={selectedTask.incidentId.severity === 'Critical' ? 'danger' : selectedTask.incidentId.severity === 'High' ? 'warning' : 'info'} pill style={{ fontSize: '0.6rem' }}>
+                                            {selectedTask.incidentId.severity}
+                                        </Badge>
+                                        <Badge color={selectedTask.incidentId.status === 'Ongoing' ? 'primary' : 'secondary'} pill style={{ fontSize: '0.6rem' }}>
+                                            {selectedTask.incidentId.status}
+                                        </Badge>
+                                    </div>
+                                    {selectedTask.incidentId.address && (
+                                        <div className="small text-white-50 mt-1 d-flex align-items-center gap-1">
+                                            <MapPin size={11} className="text-info" />
+                                            {selectedTask.incidentId.address}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                     <FormGroup className="mb-4 position-relative">
@@ -588,7 +729,7 @@ const TaskAssignment = () => {
                             onClick={() => setShowModalDropdown(!showModalDropdown)}
                         >
                             {modalVolunteerId 
-                                ? volunteers.find(v => v._id === modalVolunteerId)?.name || 'Unknown' 
+                                ? allVolunteers.find(v => v._id === modalVolunteerId)?.name || 'Unknown' 
                                 : 'Choose Unit...'}
                             <span>▼</span>
                         </div>
@@ -671,7 +812,7 @@ const TaskAssignment = () => {
                                     </div>
                                 ))}
 
-                                {searchFilteredVolunteers.length === 0 && (
+                                {searchFilteredModalVolunteers.length === 0 && (
                                     <div className="px-3 py-3 text-center text-muted small">No volunteers match your search.</div>
                                 )}
                             </div>

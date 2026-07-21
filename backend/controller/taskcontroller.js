@@ -75,6 +75,7 @@ exports.createTask = async (req, res) => {
                 await Notification.insertMany(ngoNotifications);
             }
         } else if (volunteerId) {
+            await User.findByIdAndUpdate(volunteerId, { status: "Busy" });
             const notification = new Notification({
                 userId: volunteerId,
                 title: "MISSION ASSIGNED: " + title,
@@ -125,10 +126,44 @@ exports.getVolunteerTasks = async (req, res) => {
 exports.updateTaskStatus = async (req, res) => {
     try {
         const updateData = req.body;
-        const { status, adminFeedback } = updateData;
-        const task = await Task.findByIdAndUpdate(req.params.id, updateData, { new: true }).populate("volunteerId").populate("incidentId");
-        
-        // Notify volunteer if task is rejected
+        const { status, adminFeedback, volunteerId: newVolunteerId } = updateData;
+
+        // Fetch the ORIGINAL task before update so we can detect volunteer assignment change
+        const originalTask = await Task.findById(req.params.id);
+        const wasUnassigned = !originalTask.volunteerId;
+
+        const task = await Task.findByIdAndUpdate(req.params.id, updateData, { new: true })
+            .populate("volunteerId", "name email")
+            .populate("incidentId");
+
+        // ── NGO ALERT: Admin assigned a volunteer to an incident-linked task ──
+        // Trigger when: task now has a volunteer, it previously didn't, and it's linked to an incident
+        if (newVolunteerId && wasUnassigned && task.incidentId) {
+            const ngos = await User.find({ role: "NGO" });
+            const incidentType = task.incidentId?.type || "Disaster";
+            const volunteerName = task.volunteerId?.name || "A volunteer";
+            const incidentAddr = task.incidentId?.address || "GPS Verified Location";
+
+            if (ngos.length > 0) {
+                const ngoAlerts = ngos.map(ngo => ({
+                    userId: ngo._id,
+                    title: `✅ VOLUNTEER DISPATCHED: ${incidentType} Response`,
+                    message: `Admin has assigned ${volunteerName} to the "${task.title}" deployment task for the ${incidentType} incident at ${incidentAddr}. Track progress in Incident Analysis.`,
+                    type: "Alert"
+                }));
+                await Notification.insertMany(ngoAlerts);
+            }
+
+            // Also notify the newly assigned volunteer
+            await new Notification({
+                userId: newVolunteerId,
+                title: "MISSION ASSIGNED: " + task.title,
+                message: task.description || "You have been assigned to a disaster response mission. Please check task details.",
+                type: "Task"
+            }).save();
+        }
+
+        // ── Notify volunteer if task is rejected ──
         if (status === "Rejected" && task.volunteerId) {
             await new Notification({
                 userId: task.volunteerId._id,
@@ -138,7 +173,7 @@ exports.updateTaskStatus = async (req, res) => {
             }).save();
         }
 
-        // Notify Admins/NGO if task is completed with a photo
+        // ── Notify Admins/NGO when volunteer submits completion photo ──
         if (status === "Completed" && updateData.verificationPhoto) {
             const validators = await User.find({ role: { $in: ["Admin", "NGO"] } });
             const notifications = validators.map(v => ({
@@ -150,19 +185,47 @@ exports.updateTaskStatus = async (req, res) => {
             await Notification.insertMany(notifications);
         }
 
-        // AUTO-RESOLVE Flow: If task is completed and linked to a disaster, mark disaster as RESCUED
+        // ── NGO ALERT: Task resolved by admin (incident mission complete) ──
+        if (status === "Resolved" && task.incidentId) {
+            const ngos = await User.find({ role: "NGO" });
+            const incidentType = task.incidentId?.type || "Disaster";
+            if (ngos.length > 0) {
+                const resolvedAlerts = ngos.map(ngo => ({
+                    userId: ngo._id,
+                    title: `🏁 MISSION RESOLVED: ${incidentType} Response Complete`,
+                    message: `The deployment task "${task.title}" has been verified and resolved by Admin. The ${incidentType} incident has been marked as RESCUED.`,
+                    type: "System"
+                }));
+                await Notification.insertMany(resolvedAlerts);
+            }
+        }
+
+        // ── AUTO-RESOLVE: If task completed and linked to a disaster, mark disaster as RESCUED ──
         if (status === "Completed" && task.incidentId) {
             await Disaster.findByIdAndUpdate(task.incidentId, { status: "Rescued" });
             console.log(`Tactical Success: Linked disaster signal ${task.incidentId} marked as RESCUED.`);
         }
 
-        // SOS SYNC Flow: If task is completed and linked to an SOS Request, mark Request as Rescued
+        // ── SOS SYNC: If task completed and linked to an SOS Request, mark Request as Rescued ──
         if (status === "Completed" && task.requestId) {
-            const Request = require("../model/requestmodel"); // Lazy load to avoid circular dependency
+            const Request = require("../model/requestmodel");
             await Request.findByIdAndUpdate(task.requestId, { status: "Rescued" });
             console.log(`SOS Mesh Sync: Linked SOS request ${task.requestId} marked as RESCUED.`);
         }
-        
+
+        // Update volunteer availability status based on assignment and task progress
+        if (newVolunteerId && (!originalTask.volunteerId || originalTask.volunteerId.toString() !== newVolunteerId.toString())) {
+            await User.findByIdAndUpdate(newVolunteerId, { status: "Busy" });
+            if (originalTask.volunteerId) {
+                await User.findByIdAndUpdate(originalTask.volunteerId, { status: "Available" });
+            }
+        }
+        if ((status === "Completed" || status === "Resolved") && originalTask.volunteerId) {
+            await User.findByIdAndUpdate(originalTask.volunteerId, { status: "Available" });
+        } else if (status === "Rejected" && originalTask.volunteerId) {
+            await User.findByIdAndUpdate(originalTask.volunteerId, { status: "Busy" });
+        }
+
         res.json(task);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -171,6 +234,10 @@ exports.updateTaskStatus = async (req, res) => {
 
 exports.deleteTask = async (req, res) => {
     try {
+        const task = await Task.findById(req.params.id);
+        if (task && task.volunteerId) {
+            await User.findByIdAndUpdate(task.volunteerId, { status: "Available" });
+        }
         await Task.findByIdAndDelete(req.params.id);
         res.json({ message: "Task record deleted" });
     } catch (err) {
